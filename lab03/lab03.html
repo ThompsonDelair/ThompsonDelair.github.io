@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>
+        lab03
+    </title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat|Turret+Road&display=swap" rel="stylesheet">
+    <link rel='stylesheet' href="lab03.css">
+    <script src="lab03.js"></script>
+</head>
+<body>
+    <p><a href="../index.html">Go back</a></p>
+    <div class="centered title outlined">
+        <h2>Artist Directory</h2>
+        <input type="text" id="search">
+        <button type="button" id="addArtist">Add Artist</button>
+    </div>
+    <div id="addArtistUI" class="outlined centered centered_text padded">
+        <input type="text" id="firstname" value="first name"><br>
+        <input type="text" id="about" value="about"><br>
+        <input type="text" id="url" value="portrait url"><br>
+        <button type="button" id="add">Add</button>
+    </div>
+    <div>
+        <table class="centered_table" id="artistTable">
+            <tr class="outlined hover">
+                <td class="cell">
+                    <img src="https://randomuser.me/api/portraits/med/men/1.jpg">
+                </td>
+                <td>
+                    <div class="name">Bob Bobson</div>
+                    <p>FBI</p>
+                </td>
+                <td>
+                    <button type="button" class="delete" onclick="Remove(this)">Remove</button>
+                </td>
+            </tr>
+            <tr class="outlined hover">
+                <td class="cell">
+                    <img src="https://randomuser.me/api/portraits/med/women/4.jpg">
+                </td>
+                <td>
+                    <div class="name">Carly Carlson</div>
+                    <p>Super FBI</p>
+                </td>
+                <td>
+                    <button type="button" class="delete" onclick="Remove(this)">Remove</button>
+                </td>
+            </tr>
+            <tr class="outlined hover">
+                <td class="cell">
+                    <img src="https://randomuser.me/api/portraits/med/men/2.jpg">
+                </td>
+                <td>
+                    <div class="name">Olly "Orange" O'Smiley</div>
+                    <p>BCIT 2: Recompiled</p>
+                </td>
+                <td>
+                    <button type="button" class="delete" onclick="Remove(this)">Remove</button>
+                </td>
+            </tr>
+            <tr class="outlined hover">
+                <td class="cell">
+                    <img src="https://randomuser.me/api/portraits/med/women/2.jpg">
+                </td>
+                <td>
+                    <div class="name">Wendy Wess Wenderson</div>
+                    <p>New York Yorkiversity</p>
+                </td>
+                <td>
+                    <button type="button" class="delete" onclick="Remove(this)">Remove</button>
+                </td>
+            </tr>
+            <tr class="outlined hover">
+                <td class="cell">
+                    <img src="https://randomuser.me/api/portraits/med/men/3.jpg">
+                </td>
+                <td>
+                    <div class="name">Fred Orion</div>
+                    <p>NASA on tuesdays</p>
+                </td>
+                <td>
+                    <button type="button" class="delete" onclick="Remove(this)">Remove</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>
