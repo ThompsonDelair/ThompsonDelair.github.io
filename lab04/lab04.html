@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>
+        lab04
+    </title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat|Turret+Road&display=swap" rel="stylesheet">
+    <link rel='stylesheet' href="lab04.css">
+    <script src="lab04.js"></script>
+</head>
+<body>
+    <p><a href="../index.html">Go back</a></p>
+    <div class="centered title outlined">
+        <h2>Artist Directory</h2>
+        <input type="text" id="searchInput">
+        <button type="button" id="addArtist">Add Artist</button>
+        <button type="button" id="search">Search</button>
+    </div>
+    <div id="addArtistUI" class="outlined centered centered_text padded">
+        <input type="text" id="firstname" value="first name"><br>
+        <input type="text" id="about" value="about"><br>
+        <input type="text" id="url" value="portrait url"><br>
+        <button type="button" id="add">Add</button>
+    </div>
+    <div>
+        <table class="centered_table" id="artistTable">
+            <tbody id="artistTableBody">
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
