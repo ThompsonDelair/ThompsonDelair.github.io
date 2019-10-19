@@ -69,7 +69,6 @@ function AddArtist(){
     AddToTable(portrait,firstName,about);
     storage.setItem(firstName,JSON.stringify([portrait,firstName,about]));
     artists.set(firstName+portrait+about,[firstName,portrait,about]);
-    UpdateJson();
 };
 
 function AddToTable(portrait,firstName,about){
@@ -118,14 +117,14 @@ function Remove(e){
     storage.removeItem(firstName);
     artists.delete(firstName+portrait+about);
 
-    e.parentNode.parentNode.parentNode.removeChild(e.parentNode.parentNode);
-    UpdateJson();     
+    e.parentNode.parentNode.parentNode.removeChild(e.parentNode.parentNode);    
 }
 
 function AddFromStorage(){
     for(let i = 0; i < storage.length;i++){
         let artist = JSON.parse(storage.getItem(storage.key(i)));
-        AddToTable(artist[0],artist[1],artist[2])
+        AddToTable(artist[0],artist[1],artist[2]);
+
     }
 }
 
@@ -143,9 +142,4 @@ function Search(){
             }
         }
     }
-}
-
-function UpdateJson(){
-    let jsonString = JSON.stringify(artists);
-    
 }
