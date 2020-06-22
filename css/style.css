@@ -1,0 +1,80 @@
+
+
+body {
+    background-color: #F0E9E4;
+    font-family: 'Nunito', sans-serif;
+    margin: 0px;
+	font-size: 18px;
+}
+
+pre{
+	background-color: #F0E9E4;
+}
+
+
+#about{
+	max-width: 900px;
+}
+
+#portrait{
+	width: 200px;
+	height: 300px;
+}
+
+.margined{
+    margin: 16px;
+}
+
+.name{
+    font-weight: bold;
+    font-size: large;
+}
+
+.subName1{
+    color: dimgrey;
+}
+
+.subName2{
+    color: grey
+}
+
+.menuBanner {
+    background-color: #464646;
+    color: white;
+    padding-left: 64px;
+}
+
+.bannerItem {
+    display: inline-flex;
+    padding: 10px;
+    margin-left: 10px;
+}
+
+.bannerItem:hover {
+    background-color: dimgray;
+}
+
+.bannerItem a {
+    color: white;
+    text-decoration: none;
+}
+
+.tabbed{
+    padding-left: 16px;
+}
+
+.content{
+    margin-left: 32px;
+}
+
+
+.projectBlock{
+	display: inline-block;
+	padding: 20px;
+}
+
+.projectGif{
+	width: 400px;
+	height: 400px;
+
+}

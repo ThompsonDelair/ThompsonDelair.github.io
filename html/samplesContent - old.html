@@ -1,0 +1,376 @@
+<div class="content">
+
+	This abstract class is used for a space ship entity that can fly and flight in a 3D environment
+    <pre class="language-cs">
+        <code>
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+
+/// <summary>
+/// Purpose:        This class represents a Boid object that will move around an arena based on Behaviors
+///                     In the game world, this will be attached to a ship game object and cause ships to move around the scene
+/// </summary>
+public abstract class BoidsObject : MonoBehaviour {
+
+    public static Color playerTrailColor = new Color(0f,0.616f,0.98f);
+    public static Color enemyTrailColor = Color.red;
+    TeamType team;
+	public TeamType Team {
+        get { return team; }
+        set { team = value; onTeamSet(); }
+    }
+    Outline outline;
+    public enum TeamType { player, computer};
+    public BoidsProfile profile;
+    public Vector3 idlePos { get; set; }
+
+
+    protected float speed_mod = 1f;    
+    protected bool immovable = false;
+    public Vector3 velocity { get; set; }
+    public Vector3 position {
+        get { return transform.position; }
+        set { transform.position = value; }
+    }
+	
+
+	protected int maxHealth;
+	protected int healthPoints;
+	protected void setMaxHealth(int i) {
+        maxHealth = i;
+        healthPoints = i;
+    }
+    public int getHealth() {
+        return healthPoints;
+    }
+    public int getMaxHealth() {
+        return maxHealth;
+    }	
+	
+	protected float firingDistance;
+    Missile projectile;
+    protected bool reloaded = true;    
+
+    protected delegate void taskUpdateDel();    
+    protected taskUpdateDel taskUpdate;
+	BoidsObject pendingTarget;
+    protected BoidsObject target; 
+    public BoidsObject Target {
+        get { return target; }
+        set { currentTask = new ChaseTarget(this); target = value; }
+    }	
+    protected Behavior currentTask;
+
+	
+    protected Behavior cohesion;
+    protected Behavior alignment;
+    protected Behavior separation;
+
+    protected List<Behavior> FundamentalBehaviors = new List<Behavior>();
+    protected List<Behavior> FlockBehaviors = new List<Behavior>();
+    protected List<Behavior> shipBehaviors = new List<Behavior> () ;
+  
+
+    protected virtual void Start() {
+        init();
+    }
+	
+	protected virtual void Init() {
+        BoidsControl.main.addNewBoid(this);
+
+        profile = new BoidsProfile();
+        cohesion = new Cohesion(this);
+        alignment = new Alignment(this);
+        separation = new Separation(this);
+        FundamentalBehaviors.Add(new BoundToArena(this));
+        profile.type = BoidsProfile.Type.fighter;
+        profile.cohesion_factor = 0.0015999999595806003f;
+        profile.flock_dist = 1.600000023841858f;
+        profile.separation_dist = 0.3499999940395355f;
+        profile.alignment_factor = 0.00800000037997961f;
+        profile.speed_limit = 1.3122000694274903f;
+        profile.bounds_dist = 15;
+        profile.bounds_y_mod = 2;
+        profile.bounds_factor = 0.1f;
+        profile.separation_factor = 1;
+        profile.speed_limit = 1f;
+        profile.idle_radius = 1.5f;
+        outline = this.GetComponentInChildren<Outline>();
+        outline.enabled = false;
+        healthPoints = 10;
+
+        if(currentTask == null) {
+            setIdle();
+        }
+    }
+
+    protected virtual void Update() {
+        if(taskUpdate != null) {
+            taskUpdate();
+        }
+        weaponsUpdate();
+       
+    }
+
+    private void WeaponsUpdate() {
+        if (target) {
+            float distance = BoidToBoidDistance(target);
+            if (Mathf.Abs(distance) <= firingDistance && reloaded == true) {
+                onShoot();
+            }
+        }
+    }
+
+    protected void MoveUpdate() {
+        if(Vector3.Distance(position,idlePos) <= 1.5f) {
+            randomVelocity();
+            setIdle();
+        }
+    }
+
+    virtual public void UpdateBehaviors() {
+        
+        if (immovable) { return; }
+
+        Vector3 result = new Vector3();
+        foreach(Behavior b in FundamentalBehaviors) {
+            result += b.resolve();
+        }
+        foreach(Behavior b in FlockBehaviors) {
+            result += b.resolve();
+        }
+        foreach(Behavior b in shipBehaviors) {
+            result += b.resolve();
+        }
+        if(currentTask != null) {
+            result += currentTask.resolve();
+        }
+        result += separation.resolve();
+        result += cohesion.resolve();
+        result += alignment.resolve();
+        velocity += result;
+        applySpeedLimit();
+        transform.position = position + (velocity / BoidsControl.STEP_FACTOR) * speed_mod;
+        Quaternion rotation = Quaternion.LookRotation(velocity);
+        transform.rotation = rotation;
+    }
+
+    public void BehaviorReactToOther(BoidsObject other) {
+        if (immovable) { return; }
+        if((taskUpdate == idleUpdate || taskUpdate == attackMoveUpdate) && BoidToBoidDistance(other) < firingDistance && validTarget(other)) {
+            if (taskUpdate == idleUpdate) {
+                setIdleChase(other);
+            } else {
+                setTarget(other);
+            }
+        }
+
+        separation.addUnit(other);
+
+        if(profile.type == other.profile.type && team == other.team) {
+            boidsBasic(other);
+        }
+
+        foreach(Behavior behavior in shipBehaviors) {
+            behavior.addUnit(other);
+        }
+    }
+
+	public void FlyingReactToOther(BoidsObject other) {
+        float dist = Vector3.Distance(position,other.position);
+        if (dist > profile.flock_dist) {
+            return;
+        }
+        cohesion.addUnit(other);
+        alignment.addUnit(other);        
+    }
+
+    void ApplySpeedLimit() {
+        if(velocity.magnitude > profile.speed_limit * speed_mod) {
+            velocity = velocity.normalized * profile.speed_limit * speed_mod;
+        }
+    }
+
+
+    public void RandomVelocity() {
+        velocity = Utils.randVector3(profile.speed_limit);
+    }
+
+    void SetRandomPosition() {
+        Vector3 v = new Vector3();
+        v.x = UnityEngine.Random.Range(-BoidsControl.x_boundary * BoidsControl.spawnMod,BoidsControl.x_boundary * BoidsControl.spawnMod);
+        v.y = UnityEngine.Random.Range(-BoidsControl.y_boundary * BoidsControl.spawnMod,BoidsControl.y_boundary * BoidsControl.spawnMod);
+        v.z = UnityEngine.Random.Range(-BoidsControl.x_boundary * BoidsControl.spawnMod,BoidsControl.x_boundary * BoidsControl.spawnMod);
+        position = v;
+    }
+
+    public void turnOnOutline() {
+        outline.enabled = true;
+    }
+
+    public void turnOffOutline() {
+        outline.enabled = false;
+    }
+
+    public float BoidToBoidDistance(BoidsObject B) {
+        return Vector3.Distance(position,B.position) - profile.radius - B.profile.radius;
+    }
+
+    public virtual void SetIdle() {
+        currentTask = new IdleOrbit(this);
+        taskUpdate = idleUpdate;
+        speed_mod = 0.5f;
+    }
+
+    public virtual void idleUpdate() {
+
+    }   
+
+
+    public virtual void SetTarget(BoidsObject t) {
+        target = t;
+        currentTask = new ChaseTarget(this);
+        taskUpdate = targetUpdate;
+        speed_mod = 1f;
+    }
+
+    protected virtual void TargetUpdate() {
+        if(target == null) {
+            idlePos = position + Utils.randVector3(profile.radius * 3);
+            setIdle();            
+        }
+    }
+
+
+    public void SetMove(Vector3 pos) {
+        idlePos = pos;
+        currentTask = new IdleOrbit(this);
+        taskUpdate = moveUpdate;
+        speed_mod = 1f;
+    }
+
+
+
+    /// <summary>
+    /// sets the boids object to chase an enemy near its idle position
+    /// </summary>
+    /// <param name="t"></param>
+    public virtual void SetIdleChase(BoidsObject t) {
+        taskUpdate = idleChaseUpdate;
+        currentTask = new ChaseTarget(this);
+        target = t;
+        speed_mod = 1f;
+    }
+
+    /// <summary>
+    /// to be used in task update delegate
+    /// returns the boids object to its idle position if its target is null or it has moved too far from its idle position
+    /// </summary>
+    protected virtual void IdleChaseUpdate() {
+        if(target == null) {
+            setIdle();
+        }
+        if(Vector3.Distance(position,idlePos) > 10) {
+            setMove(idlePos);
+        }
+    }
+
+    /// <summary>
+    /// sets the boids object to attack move, letting it engage the first enemy it encounters
+    /// </summary>
+    /// <param name="pos"></param>
+    public void SetAttackMove(Vector3 pos) {
+        setMove(pos);
+        taskUpdate = attackMoveUpdate;
+    }
+
+    /// <summary>
+    /// sets the ship to idle if it has reached its destination
+    /// </summary>
+    protected void AttackMoveUpdate() {
+        moveUpdate();
+    }
+
+    /// <summary>
+    /// loads and returns the boid object's specific material
+    /// </summary>
+    /// <returns>a team-specific material</returns>
+    public abstract Material GetPlayerMaterial();
+    public abstract Material GetEnemyMaterial();
+
+    /// <summary>
+    /// sets the material for the object's mesh renderer
+    /// </summary>
+    /// <param name="m"></param>
+    public void SetMaterial(Material m) {
+        MeshRenderer mr = GetComponentInChildren<MeshRenderer>();
+        mr.material = m;
+    }
+
+    /// <summary>
+    /// sets the color of the object's trail renderer
+    /// </summary>
+    /// <param name="c">the color to set the trail renderer to</param>
+    void SetTrailColor(Color c) {
+        TrailRenderer tr = GetComponent<TrailRenderer>();
+        tr.enabled = true;
+        Gradient g = new Gradient();
+        g.SetKeys(
+            new GradientColorKey[] { new GradientColorKey(Color.white,0f), new GradientColorKey(c,0.45f) },
+            new GradientAlphaKey[] { new GradientAlphaKey(0.75f,0f),new GradientAlphaKey(0.2f,1f) }
+        );
+        tr.colorGradient = g;
+    }
+
+    /// <summary>
+    /// sets the color of the object's outline
+    /// </summary>
+    /// <param name="c">the color to set the outline to</param>
+    void SetOutlineColor(Color c) {
+        Outline o = GetComponentInChildren<Outline>();
+        o.OutlineColor = c;
+    }
+
+    /// <summary>
+    /// abstract function that returns whether or not a target is a valid target for a sub type of the boids object
+    /// </summary>
+    /// <param name="other">the target to check</param>
+    /// <returns>true if the other object is a valid target</returns>
+    public abstract bool ValidTarget(BoidsObject other);
+    
+    public virtual void onShoot() {
+        Missile missile = Instantiate(projectile) as Missile;
+        missile.transform.position = transform.position;
+        missile.Target = target;
+        reloaded = false;
+    }
+
+
+    public virtual void takeDamage(int i) {
+        healthPoints -= i;
+        if (healthPoints <= 0)
+            Destroy(gameObject);
+    }
+
+
+    protected virtual void OnSetTeam() {
+        if (team == TeamType.computer) {
+            setMaterial(getEnemyMaterial());
+            setTrailColor(enemyTrailColor);
+            setOutlineColor(Color.red);
+            gameObject.layer = LayerMask.NameToLayer("EnemyUnits");
+        } else {
+            setMaterial(getPlayerMaterial());
+            setTrailColor(playerTrailColor);
+            setOutlineColor(Color.green);
+            gameObject.layer = LayerMask.NameToLayer("PlayerUnits");
+        }
+    }
+}
+        </code>
+    </pre>
+    
+</div>
+<script src="js/prism.js"></script>

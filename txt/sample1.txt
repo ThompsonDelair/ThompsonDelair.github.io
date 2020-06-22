@@ -1,0 +1,143 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEngine;
+
+/// &lt;summary>
+/// Purpose:        This class manages and updates all BoidsObjects
+/// Author:         Thompson
+/// Modified by:    Thompson
+/// References:     none
+/// &lt;/summary>
+public class BoidsControl : MonoBehaviour {
+
+    public static List&lt;BoidsObject> boids = new List&lt;BoidsObject>();
+    public static BoidsControl main;
+    
+    public const int STEP_FACTOR = 50;
+    public static float x_boundary = 10;
+    public static float y_boundary = 5;
+    public const int boundary_buffer = 2;
+    public const float BOUNDARY_FACTOR = 0.1f;
+    public const float spawnMod = 0.8f;
+
+    public static GameObject fighterPrefab;
+    public static GameObject bomberPrefab;
+    public static GameObject frigatePrfab;
+
+    /// &lt;summary>
+    /// Gets references to ship prefabs
+    /// gets size of the arena
+    /// &lt;/summary>
+    private void Awake() {
+
+        GameObject arenaXZ = GameObject.Find("ArenaXZ");
+        x_boundary = Vector3.Distance(arenaXZ.transform.position,Vector3.zero);
+        GameObject arenaY = GameObject.Find("ArenaY");
+        y_boundary = Vector3.Distance(arenaY.transform.position,Vector3.zero);
+
+        main = this;
+
+        fighterPrefab = Resources.Load&lt;GameObject>("prefab/fighter");
+        if(fighterPrefab == null) {
+            Debug.Log("Fighter prefab null");
+        }
+        bomberPrefab = Resources.Load&lt;GameObject>("prefab/bomber");
+        if (bomberPrefab == null) {
+            Debug.Log("Bomber prefab null");
+        }
+        frigatePrfab = Resources.Load&lt;GameObject>("prefab/frigate");
+        if (frigatePrfab == null) {
+            Debug.Log("Frigate prefab null");
+        }
+    }
+
+    /// &lt;summary>
+    /// Causes all boids objects to update each fixed update frame
+    /// &lt;/summary>
+    private void FixedUpdate() {
+        runBoids();
+    }
+
+    /// &lt;summary>
+    /// Iterates through all boids objects and runs a comparison function between all of them to be used
+    /// when updating movement
+    /// &lt;/summary>
+    void runBoids() {
+        for(int i = boids.Count-1; i >= 0; i--) {
+
+            if(boids[i] == null) {
+                boids.RemoveAt(i);
+                continue;
+            }
+
+            for(int j = i - 1; j >= 0; j--) {
+                if(boids[i] != null && boids[j] != null) {
+                    boids[i].Compare(boids[j]);
+                    boids[j].Compare(boids[i]);
+                } 
+            }
+        }
+        for(int i = 0; i &lt; boids.Count; i++) {
+            if(boids[i] != null) {
+                boids[i].resolveBehavoirs();
+            }            
+        }
+    }
+
+    /// &lt;summary>
+    /// adds a boid object to the list of objects
+    /// &lt;/summary>
+    /// &lt;param name="B">&lt;/param>
+    public static void addNewBoid(BoidsObject B) {
+        boids.Add(B);
+    }
+
+    /// &lt;summary>
+    /// Spawns a ship of the designated team and type at the designated position
+    /// &lt;/summary>
+    /// &lt;param name="go">the ship prefab to instantiate&lt;/param>
+    /// &lt;param name="t">the team to set the ship for&lt;/param>
+    /// &lt;param name="pos">the position to spawn the ship at&lt;/param>
+    /// &lt;returns>a reference to the ship that was instantiated&lt;/returns>
+    public static BoidsObject spawnShip(GameObject go, BoidsObject.TeamType t,Vector3 pos){
+        GameObject ship = Instantiate(go);
+        ship.transform.position = pos;
+        BoidsObject b = ship.GetComponent&lt;BoidsObject>();
+        b.Team = t;
+        b.randomVelocity();
+        return b;
+    }
+
+    /// &lt;summary>
+    /// spawns a fighter of the designated team and type at the designated position
+    /// &lt;/summary>
+    /// &lt;param name="t">the team to set the fighter for&lt;/param>
+    /// &lt;param name="pos">the position to spawn the fighter at&lt;/param>
+    /// &lt;returns>a reference to the fighter that was instantiated&lt;/returns>
+    public static BoidsObject spawnFighter(BoidsObject.TeamType t,Vector3 pos) {
+        return spawnShip(fighterPrefab,t,pos);        
+    }
+
+    /// &lt;summary>
+    /// spawns a bomber of the designated team and type at the designated position
+    /// &lt;/summary>
+    /// &lt;param name="t">the team to set the bomber for&lt;/param>
+    /// &lt;param name="pos">the position to spawn the bomber at&lt;/param>
+    /// &lt;returns>a reference to the bomber that was instantiated&lt;/returns>
+    public static BoidsObject spawnBomber(BoidsObject.TeamType t,Vector3 pos) {
+        return spawnShip(bomberPrefab,t,pos);
+    }
+
+    /// &lt;summary>
+    /// spawns a frigate of the designated team and type at the designated position
+    /// &lt;/summary>
+    /// &lt;param name="t">the team to set the frigate for&lt;/param>
+    /// &lt;param name="pos">the position to spawn the frigate at&lt;/param>
+    /// &lt;returns>a reference to the frigate that was instantiated&lt;/returns>
+    public static BoidsObject spawnFrigate(BoidsObject.TeamType t,Vector3 pos) {
+        return spawnShip(frigatePrfab,t,pos);
+    }   
+}
