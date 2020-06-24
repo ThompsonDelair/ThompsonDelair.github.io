@@ -1,19 +1,13 @@
-
+/* font-family: 'Montserrat', sans-serif; */
 
 body {
     background-color: #F0E9E4;
-    font-family: 'Nunito', sans-serif;
+    /* font-family: 'Inconsolata', monospace; */
+	/* font-family: 'Roboto Slab', serif; */
+	font-family: 'Work Sans', sans-serif;
+	font-weight: 400;
     margin: 0px;
 	font-size: 18px;
-}
-
-pre{
-	background-color: #F0E9E4;
-}
-
-
-#about{
-	max-width: 900px;
 }
 
 #portrait{
@@ -65,8 +59,57 @@ pre{
 
 .content{
     margin-left: 32px;
+	font-weight: 300;
 }
 
+#about{
+	
+	display: flex;
+	text-align: center;
+	margin-top: 40px;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.aboutContent{
+		
+}
+
+#aboutText{
+	max-width: 600px;	
+	text-align: left;
+	font-size: 20px;
+}
+
+#aboutLine{
+	border-left: 1px solid DarkGray;
+	height: 400px;
+	width: 3px;
+	margin-left: 40px;
+	margin-right: 40px;
+	
+}
+
+#history{
+	display: flex;
+	/* text-align: center; */
+	margin-top: 40px;
+	justify-content: center;
+	/* align-items: center; */
+	flex-wrap: wrap;
+	
+}
+
+.historyContent{
+	text-align: left;
+}
+
+.border{
+	border-left: 1px solid DarkGray;
+	padding-left: 10px;
+	margin-left:30px;
+}
 
 .projectBlock{
 	display: inline-block;
@@ -77,4 +120,11 @@ pre{
 	width: 400px;
 	height: 400px;
 
+}
+
+
+@media only screen and (max-width: 949px) {
+	#aboutLine{
+		visibility: hidden;			
+	}
 }
