@@ -7,6 +7,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Purpose:        Abstract base class for spaceships that can fly and fight in a 3D environment. 
+///                 Uses flocking behaviors to react to other nearby spaceships.
+///                 
+///                 This script is used in Unity so intead of having a contructor, it is instantiated from a Unity prefab
+/// </summary>
 public abstract class BoidsSpaceship : MonoBehaviour
 {
     public int Team { get { return team; } }
@@ -15,12 +21,13 @@ public abstract class BoidsSpaceship : MonoBehaviour
     public Vector3 Position { get { return position;  } }
     Vector3 position;
     Vector3 destination;
+
     public Vector3 Velocity { get { return velocity; } }
     Vector3 velocity;
     float speedModifier;
 
+    public int CurrHitPoints { get { return currHitPoints; } set { currHitPoints = value; } }
     int maxHitPoints;
-    public int CurrHitPoints { get { return currHitPoints; } }
     int currHitPoints;
 
     BoidsSpaceship target;
@@ -28,25 +35,22 @@ public abstract class BoidsSpaceship : MonoBehaviour
     Missile missile;
     bool reloaded;
 
+    // this function deleg
     TaskUpdateDelegate taskUpdate;
 
+    // includes data like speed, radius, and other flocking beahvior information
     public BoidsProfile profile;
 
-    Behavior cohesion;
-    Behavior alignment;
-    Behavior separation;
+    // flying behaviors are objects that store data of other nearby flying entities
+    // and are used to get new headings
+    FlyingBehavior cohesion;
+    FlyingBehavior alignment;
+    FlyingBehavior separation;
 
-    Behavior currentTask;
+    FlyingBehavior currentTask;
 
     public float BoidToBoidDistance(BoidsSpaceship other) {
         return Vector3.Distance(position,other.position) - profile.radius - other.profile.radius;
-    }
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
     }
 
     // Update is called once per frame
@@ -55,45 +59,63 @@ public abstract class BoidsSpaceship : MonoBehaviour
         if (taskUpdate != null) {
             taskUpdate();
         }
-        WeaponsUpdate();
+        ShootIfWithinRange();
     }
 
-    public virtual void SetModeToIdle() {
+    // Affects flight path depending on nearby spaceships
+    // and targets enemies within distance if the spaceship has no current target
+    public void ReactToOther(BoidsSpaceship other) {
+        if (other.Team != this.team && AttackCheck(other)) {
+            if (taskUpdate == IdleUpdate) {
+                SetIdleChase(other);
+            } else {
+                SetModeToAttack(other);
+            }
+        } else {
+            FlockingWithOther(other);
+        }
+        separation.addUnit(other);
+    }
+
+    // Adds cohesion and alignment flocking forces for nearby allied ships
+    void FlockingWithOther(BoidsSpaceship other) {
+        float dist = Vector3.Distance(position,other.position);
+        if (dist > profile.flock_dist) {
+            return;
+        }
+        cohesion.AddUnit(other);
+        alignment.AddUnit(other);
+    }
+
+    protected virtual void SetModeToIdle() {
         currentTask = new IdleOrbit(this);
         taskUpdate = IdleUpdate;
         speedModifier = 0.5f;
     }
 
-    public void SetDestination(Vector3 pos) {
-        destination = pos;
-        currentTask = new IdleOrbit(this);
-        taskUpdate = MoveUpdate;
-        speedModifier = 1f;
-    }
-
-    public virtual void SetModeToIdleChase(BoidsSpaceship t) {
+    // This behavior is used an idle ship finds an enemy
+    // the idle ship will chase until it reaches a certain distance from its original position
+    protected virtual void SetModeToIdleChase(BoidsSpaceship t) {
         taskUpdate = IdleChaseUpdate;
         currentTask = new ChaseTarget(this);
         target = t;
         speedModifier = 1f;
     }
 
-    public virtual void SetTarget(BoidsSpaceship other) {
+    protected void SetDestination(Vector3 pos) {
+        destination = pos;
+        currentTask = new IdleOrbit(this);
+        taskUpdate = MoveUpdate;
+        speedModifier = 1f;
+    }
+
+    protected virtual void SetModeToAttack(BoidsSpaceship other) {
         target = other;
         currentTask = new ChaseTarget(this);
         taskUpdate = AttackUpdate;
         speedModifier = 1f;
     }
-
-    private void WeaponsUpdate() {
-        if (target) {
-            float distance = BoidToBoidDistance(target);
-            if (Mathf.Abs(distance) <= attackRange && reloaded == true) {
-                Shoot();
-            }
-        }
-    }
-
+       
     protected virtual void IdleChaseUpdate() {
         if (target == null) {
             SetModeToIdle();
@@ -110,66 +132,56 @@ public abstract class BoidsSpaceship : MonoBehaviour
         }
     }
 
-    public void SetRandomVelocity() {
-        velocity = Utils.randVector3(profile.speed_limit);
-    }
-
-    public virtual void Shoot() {
-        Missile missile = Instantiate(missile) as Missile;
-        missile.transform.position = transform.position;
-        missile.Target = target;
-        reloaded = false;
-    }
-
-    public virtual void IdleUpdate() {
-
-    }
-
-    protected void AttackMoveUpdate() {
-        MoveUpdate();
-    }
-
-    public abstract bool ValidTarget(BoidsSpaceship other);
-
-    public virtual void SetIdleChase(BoidsSpaceship t) {
-        taskUpdate = IdleChaseUpdate;
-        currentTask = new ChaseTarget(this);
-        target = t;
-        speedModifier = 1f;
-    }
-
     protected virtual void AttackUpdate() {
         if (target == null) {
             destination = position + Utils.randVector3(profile.radius * 3);
             SetModeToIdle();
         }
     }
-
-    bool AttackCheck(BoidsSpaceship other) {
-        return (taskUpdate == IdleUpdate || taskUpdate == AttackMoveUpdate) && BoidToBoidDistance(B) < attackRange && ValidTarget(B);
-    }
-
-    public void ReactToOther(BoidsSpaceship other) {
-        if(other.Team != this.team && AttackCheck(other)) {
-            if (taskUpdate == IdleUpdate) {
-                SetIdleChase(other);
-            } else {
-                SetTarget(other);
+       
+    void ShootIfWithinRange() {
+        if (target) {
+            float distance = BoidToBoidDistance(target);
+            if (Mathf.Abs(distance) <= attackRange && reloaded == true) {
+                Shoot();
             }
-        } else {
-            FlockingWithOther(other);
         }
     }
-    void FlockingWithOther(BoidsSpaceship other) {
-        float dist = Vector3.Distance(position,other.position);
-        if (dist > profile.flock_dist) {
-            return;
-        }
-        cohesion.AddUnit(other);
-        alignment.AddUnit(other);
+
+    protected virtual void Shoot() {
+        Missile missile = Instantiate(missile) as Missile;
+        missile.transform.position = transform.position;
+        missile.Target = target;
+        reloaded = false;
+        OnShoot();
+    }
+
+    // this empty function can be overridden to allow for additional behaviors
+    protected virtual void OnShoot() { }
+
+    protected void SetRandomVelocity() {
+        velocity = Utils.randVector3(profile.speed_limit);
+    }
+
+    // this empty function can be overridden to allow for additional behaviors
+    // normally idle ships will not do anything
+    protected virtual void IdleUpdate() { }
+
+    // must be defined by inheriting class in order to decide what ships this ship can attack
+    protected abstract bool ValidTarget(BoidsSpaceship other);
+
+    protected virtual void SetIdleChase(BoidsSpaceship t) {
+        taskUpdate = IdleChaseUpdate;
+        currentTask = new ChaseTarget(this);
+        target = t;
+        speedModifier = 1f;
+    }
+
+    // by default, returns true if enemy is within range and is a valid target
+    protected virtual bool AttackCheck(BoidsSpaceship other) {
+        return taskUpdate == IdleUpdate && BoidToBoidDistance(other) < attackRange && ValidTarget(other);
     }
 }
-
         </code>
     </pre>
     
