@@ -92,7 +92,7 @@ body {
 }
 
 .aboutContent{
-		
+	margin: 10px;
 }
 
 #aboutText{
@@ -142,13 +142,31 @@ body {
 
 }
 
-#samples{
-	font-size: 12px;
+.listBlackDot{
 	
 }
+
+.listOutlineDot{
+	list-style-type: circle;
+}
+
+ul {
+	margin: 0px;	
+}
+
+/* .sampleCode{ */
+	/* font-size: 12px; */
+	
+/* } */
+
+/* #samples{ */
+	/* font-size: 12px; */
+	
+/* } */
 
 @media only screen and (max-width: 949px) {
 	#aboutLine{
 		visibility: hidden;			
 	}
 }
+
